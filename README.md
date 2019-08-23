@@ -1,6 +1,6 @@
-#QUT Manipulation Commander (QMC)
+# QUT Manipulation Commander (QMC)
 
-##Overview
+## Overview
 
 The QUT Manipulation Commander (QMC) provides a simple unified mechanism for building high-level interface configurations for seamlessly controlling a broad range of manipulators under different actuation modes.
 
@@ -12,14 +12,21 @@ An example configuration of QMC can be seen below:
 
 ![system specification](docs/system_spec.png "System Specification")
 
-##Setup
+## Setup
 QMC configurations are specified using the YAML file format and should be loaded via rosparam into the local namespace of QMC. This configuration defines: 1) a `move_group` name to be used when generating goals with the MoveIt planner, and 2) a list of `controllers` representing of one or more controller descriptions. 
+
+```
+move_group: move_group_name
+controllers:
+  - Controller Description 1
+  - Controller Description 1
+```
 
 Each controller description is composed of the following fields:
 
-####Controller Description
+#### Controller Description
 | Field Name | Description | Example |
-| :--- |:-------------| ---- |
+| --------| --------| --------|
 | topic_name       | Specifies the topic name to which QMC will subscribe. | `"cartesian/velocity"` |
 | topic_type       | The topic type of the subscriber. |  `"geometry_msgs/Twist"`  |
 | maps (optional)  | The topic name that QMC will republish on to communicate with the activated low-level controller. If left unspecified, QMC will switch controllers but not republish the received message.  | `"/cartesian_velocity_node_controller/cartesian_velocity"` |
