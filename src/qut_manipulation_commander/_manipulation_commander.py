@@ -11,8 +11,8 @@ from ._manipulation_moveit_commander import ManipulationMoveItCommander
 
 from std_srvs.srv import Empty
 
-from qut_manipulation_msgs.msg import MoveGripperToPoseAction, MoveGripperToPoseResult
-from qut_manipulation_msgs.msg import MoveGripperToNamedPoseAction, MoveGripperToNamedPoseResult
+from qut_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseResult
+from qut_manipulation_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
 
 class ManipulationCommander(object):
   def __init__(self, moveit_commander=None):
@@ -56,16 +56,23 @@ class ManipulationCommander(object):
 
     self.pose_server = actionlib.SimpleActionServer(
       'cartesian/pose', 
-      MoveGripperToPoseAction,
+      MoveToPoseAction,
       execute_cb=self.pose_cb,
-      auto_start = False
+      auto_start=False
     )
 
     self.location_server = actionlib.SimpleActionServer(
       'cartesian/named_pose',
-      MoveGripperToNamedPoseAction,
+      MoveToNamedPoseAction,
       execute_cb=self.location_cb,
-      auto_start = False
+      auto_start=False
+    )
+
+    self.gripper_server = actionlib.SimpleActionServer(
+      '/gripper',
+      MoveGripper,
+      execute_cb=self.gripper_cb,
+      auto_start=False
     )
 
     self.pose_server.start()
@@ -104,8 +111,11 @@ class ManipulationCommander(object):
       goal.pose.pose.orientation.w
     ]
     
-    self.commander.goto_pose(pose)
-    self.pose_server.set_succeeded(MoveGripperToPoseResult(result=0))
+    self.moveit_commander.goto_pose(pose)
+    self.pose_server.set_succeeded(MoveToPoseResult(result=0))
+
+  def gripper_cb(self, goal):
+    self.gripper_server.set_succeeded(MoveGripperResult(result=0))
 
   def location_cb(self, goal):
     self.__move_to_named(goal.named_pose)
