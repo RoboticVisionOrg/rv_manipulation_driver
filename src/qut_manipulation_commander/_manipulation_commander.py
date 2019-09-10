@@ -13,6 +13,7 @@ from std_srvs.srv import Empty
 
 from qut_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseResult
 from qut_manipulation_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
+from qut_manipulation_msgs.msg import MoveGripperAction
 
 class ManipulationCommander(object):
   def __init__(self, moveit_commander=None):
@@ -70,13 +71,14 @@ class ManipulationCommander(object):
 
     self.gripper_server = actionlib.SimpleActionServer(
       '/gripper',
-      MoveGripper,
+      MoveGripperAction,
       execute_cb=self.gripper_cb,
       auto_start=False
     )
 
     self.pose_server.start()
     self.location_server.start()
+    self.gripper_server.start()
 
     rospy.Service('/home', Empty, self.home_cb)
     
