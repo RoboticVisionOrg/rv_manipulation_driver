@@ -34,6 +34,8 @@ class ManipulationCommander(object):
       rospy.logerr('Unable to load move_group name from rosparam server path: move_group')
       sys.exit(1)
 
+    rospy.Service('/get_named_poses', Names, self.get_named_poses_cb)
+
     self.action_proxies = []
     self.publishers = []
 
@@ -81,7 +83,7 @@ class ManipulationCommander(object):
     self.location_server.start()
 
     rospy.Service('/home', Empty, self.home_cb)
-    rospy.Service('/get_named_poses', Names, self.get_named_poses_cb)
+
     
   def create_publisher(self, controller_name, topic_in, topic_out, topic_type_name):
     topic_type = self.__get_topic_type(topic_type_name)
