@@ -133,13 +133,13 @@ class ManipulationCommander(object):
     poses = []
     if rospy.has_param('robot_description_semantic'):
       robot_description = rospy.get_param('robot_description_semantic')
-      robot_description_struct = ET.fromstring(robot_des)
+      robot_description_struct = ET.fromstring(robot_description)
       
       for state in robot_description_struct.iter('group_state'):
         if state.attrib['group'] == self.move_group:
           poses.append(state.attrib['name'])
 
-    return NamesResonse(poses)
+    return NamesResponse(poses)
 
   def __move_to_named(self, named):   
     if self.switcher.get_current_name() != 'position_joint_trajectory_controller':
