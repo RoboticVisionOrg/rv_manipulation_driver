@@ -4,6 +4,7 @@ import sys
 import rospy
 import actionlib
 import importlib
+import xml.etree.ElementTree as ET
 
 from ._control_switcher import ControlSwitcher
 from ._action_proxy import ActionProxy
@@ -14,6 +15,7 @@ from std_srvs.srv import Empty
 from qut_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseResult
 from qut_manipulation_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
 from qut_manipulation_msgs.msg import MoveGripperAction
+from qut_manipulation_msgs.srv import Names, NamesResponse
 
 class ManipulationCommander(object):
   def __init__(self, moveit_commander=None):
@@ -32,6 +34,8 @@ class ManipulationCommander(object):
     if not self.move_group:
       rospy.logerr('Unable to load move_group name from rosparam server path: move_group')
       sys.exit(1)
+
+    rospy.Service('/get_named_poses', Names, self.get_named_poses_cb)
 
     self.action_proxies = []
     self.publishers = []
@@ -81,6 +85,7 @@ class ManipulationCommander(object):
     self.gripper_server.start()
 
     rospy.Service('/home', Empty, self.home_cb)
+
     
   def create_publisher(self, controller_name, topic_in, topic_out, topic_type_name):
     topic_type = self.__get_topic_type(topic_type_name)
@@ -125,6 +130,18 @@ class ManipulationCommander(object):
   def home_cb(self, req):
     self.__move_to_named('ready')
     return []
+
+  def get_named_poses_cb(self, req):
+    poses = []
+    if rospy.has_param('robot_description_semantic'):
+      robot_description = rospy.get_param('robot_description_semantic')
+      robot_description_struct = ET.fromstring(robot_description)
+      
+      for state in robot_description_struct.iter('group_state'):
+        if state.attrib['group'] == self.move_group:
+          poses.append(state.attrib['name'])
+
+    return NamesResponse(poses)
 
   def __move_to_named(self, named):   
     if self.switcher.get_current_name() != 'position_joint_trajectory_controller':
