@@ -35,7 +35,7 @@ class ManipulationCommander(object):
       rospy.logerr('Unable to load move_group name from rosparam server path: move_group')
       sys.exit(1)
 
-    rospy.Service('/get_named_poses', Names, self.get_named_poses_cb)
+    rospy.Service('/service/get_named_arm_poses', Names, self.get_named_poses_cb)
 
     self.action_proxies = []
     self.publishers = []
