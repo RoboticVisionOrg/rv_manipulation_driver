@@ -4,6 +4,7 @@ import sys
 import rospy
 import actionlib
 import importlib
+import tf
 import xml.etree.ElementTree as ET
 
 from ._control_switcher import ControlSwitcher
@@ -16,6 +17,7 @@ from qut_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseResult
 from qut_manipulation_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
 from qut_manipulation_msgs.msg import MoveGripperAction
 from qut_manipulation_msgs.srv import Names, NamesResponse
+from qut_manipulation_msgs.srv import LinkPose, LinkPoseResponse
 
 class ManipulationCommander(object):
   def __init__(self, moveit_commander=None):
@@ -35,7 +37,10 @@ class ManipulationCommander(object):
       rospy.logerr('Unable to load move_group name from rosparam server path: move_group')
       sys.exit(1)
 
-    rospy.Service('/service/get_named_arm_poses', Names, self.get_named_poses_cb)
+    self.tf_listener = tf.TransformListener()
+
+    rospy.Service('get_named_arm_poses', Names, self.get_named_poses_cb)
+    rospy.Service('get_link_position', LinkPose, self.get_link_pose_cb)
 
     self.action_proxies = []
     self.publishers = []
@@ -74,7 +79,7 @@ class ManipulationCommander(object):
     )
 
     self.gripper_server = actionlib.SimpleActionServer(
-      '/gripper',
+      'gripper',
       MoveGripperAction,
       execute_cb=self.gripper_cb,
       auto_start=False
@@ -84,7 +89,7 @@ class ManipulationCommander(object):
     self.location_server.start()
     self.gripper_server.start()
 
-    rospy.Service('/home', Empty, self.home_cb)
+    rospy.Service('home', Empty, self.home_cb)
 
     
   def create_publisher(self, controller_name, topic_in, topic_out, topic_type_name):
@@ -107,18 +112,7 @@ class ManipulationCommander(object):
       self.switcher.switch_controller('position_joint_trajectory_controller')
 
     self.moveit_commander.stop()
-
-    pose = [
-      goal.pose.pose.position.x,
-      goal.pose.pose.position.y, 
-      goal.pose.pose.position.z,
-      goal.pose.pose.orientation.x,
-      goal.pose.pose.orientation.w,
-      goal.pose.pose.orientation.z,
-      goal.pose.pose.orientation.w
-    ]
-    
-    self.moveit_commander.goto_pose(pose)
+    self.moveit_commander.goto_pose(goal.pose)
     self.pose_server.set_succeeded(MoveToPoseResult(result=0))
 
   def gripper_cb(self, goal):
@@ -142,6 +136,24 @@ class ManipulationCommander(object):
           poses.append(state.attrib['name'])
 
     return NamesResponse(poses)
+
+  def get_link_pose_cb(self, req):
+    (trans,rot) = self.tf_listener.lookupTransform(req.base_frame, req.link_name, rospy.Time(0))
+    response = LinkPoseResponse()
+    
+    response.pose.header.stamp = rospy.Time.now()
+    response.pose.header.frame_id = req.base_frame
+
+    response.pose.pose.position.x = trans[0]
+    response.pose.pose.position.y = trans[1]
+    response.pose.pose.position.z = trans[2]
+
+    response.pose.pose.orientation.x = rot[0]
+    response.pose.pose.orientation.y = rot[1]
+    response.pose.pose.orientation.z = rot[2]
+    response.pose.pose.orientation.w = rot[3]
+
+    return response
 
   def __move_to_named(self, named):   
     if self.switcher.get_current_name() != 'position_joint_trajectory_controller':

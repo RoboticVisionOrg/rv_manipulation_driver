@@ -56,7 +56,7 @@ class ManipulationMoveItCommander(object):
 
         if type(pose) is list:
             pose = list_to_pose(pose)
-        print(pose)
+        
         self.active_group.set_max_velocity_scaling_factor(velocity)
         self.active_group.set_pose_target(pose)
         success = self.active_group.go(wait=wait)
