@@ -13,11 +13,11 @@ from ._manipulation_moveit_commander import ManipulationMoveItCommander
 
 from std_srvs.srv import Empty
 
-from qut_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseResult
-from qut_manipulation_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
-from qut_manipulation_msgs.msg import MoveGripperAction
-from qut_manipulation_msgs.srv import Names, NamesResponse
-from qut_manipulation_msgs.srv import LinkPose, LinkPoseResponse
+from rv_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseResult
+from rv_manipulation_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
+from rv_manipulation_msgs.msg import MoveGripperAction
+from rv_manipulation_msgs.srv import Names, NamesResponse
+from rv_manipulation_msgs.srv import LinkPose, LinkPoseResponse
 
 class ManipulationCommander(object):
   def __init__(self, moveit_commander=None):

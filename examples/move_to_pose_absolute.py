@@ -1,7 +1,7 @@
 import rospy
 import actionlib
 
-from qut_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseGoal
+from rv_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseGoal
 from geometry_msgs.msg import PoseStamped
 
 # initialise ros node
