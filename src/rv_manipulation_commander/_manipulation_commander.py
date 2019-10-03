@@ -15,7 +15,7 @@ from std_srvs.srv import Empty
 
 from rv_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseResult
 from rv_manipulation_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
-from rv_manipulation_msgs.msg import MoveGripperAction
+from rv_manipulation_msgs.msg import MoveGripperAction, MoveGripperGoal, MoveGripperResult
 from rv_manipulation_msgs.srv import Names, NamesResponse
 from rv_manipulation_msgs.srv import LinkPose, LinkPoseResponse
 
@@ -90,7 +90,8 @@ class ManipulationCommander(object):
     self.gripper_server.start()
 
     rospy.Service('home', Empty, self.home_cb)
-
+    rospy.Service('recover', Empty, self.recover_cb)
+    rospy.Service('stop', Empty, self.stop_cb)
     
   def create_publisher(self, controller_name, topic_in, topic_out, topic_type_name):
     topic_type = self.__get_topic_type(topic_type_name)
@@ -116,13 +117,29 @@ class ManipulationCommander(object):
     self.pose_server.set_succeeded(MoveToPoseResult(result=0))
 
   def gripper_cb(self, goal):
-    self.gripper_server.set_succeeded(MoveGripperResult(result=0))
+    if goal.mode == MoveGripperGoal.MODE_GRASP:
+      result = self.moveit_commander.grasp(goal.width, goal.e_outer, goal.e_inner, goal.speed, goal.force)
+      self.gripper_server.set_succeeded(MoveGripperResult(result=result))
+      
+    elif goal.mode == MoveGripperGoal.MODE_STATIC:
+      result = self.moveit_commander.set_gripper(goal.width, goal.speed)
+      self.gripper_server.set_succeeded(MoveGripperResult(result=result))
+    
+    else:
+      self.gripper_server.set_succeeded(MoveGripperResult(result=1))
 
   def location_cb(self, goal):
     self.__move_to_named(goal.named_pose)
 
   def home_cb(self, req):
     self.__move_to_named('ready')
+    return []
+
+  def stop_cb(self, req):
+    self.moveit_commander.stop()
+    return []
+
+  def recover_cb(self, req):
     return []
 
   def get_named_poses_cb(self, req):
