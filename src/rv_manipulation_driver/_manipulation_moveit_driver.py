@@ -11,9 +11,9 @@ from moveit_commander.conversions import pose_to_list, list_to_pose
 import geometry_msgs.msg
 from std_msgs.msg import Empty
 
-class ManipulationMoveItCommander(object):
+class ManipulationMoveItDriver(object):
   def __init__(self, group_name=None):
-    self.robot = moveit_commander.RobotCommander()
+    self.robot = moveit_commander.RobotDriver()
     self.scene = moveit_commander.PlanningSceneInterface()
 
     self.groups = {}
@@ -29,7 +29,7 @@ class ManipulationMoveItCommander(object):
         if group_name not in self.groups:
             if group_name not in self.robot.get_group_names():
                 raise ValueError('Group name %s is not valid. Options are %s' % (group_name, self.robot.get_group_names()))
-            self.groups[group_name] = moveit_commander.MoveGroupCommander(group_name)
+            self.groups[group_name] = moveit_commander.MoveGroupDriver(group_name)
         self.active_group = self.groups[group_name]
 
   def goto_joints(self, joint_values, group_name=None, wait=True):

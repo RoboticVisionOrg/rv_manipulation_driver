@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>rv_manipulation_commander</name>
+  <name>rv_manipulation_driver</name>
   <version>0.1.0</version>
-  <description>The rv_manipulation_commander package</description>
+  <description>The rv_manipulation_driver package</description>
 
   <maintainer email="g.suddrey@qut.edu.au">Gavin Suddrey</maintainer>
   <license>BSD</license>

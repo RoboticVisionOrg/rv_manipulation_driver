@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 
 from ._control_switcher import ControlSwitcher
 from ._action_proxy import ActionProxy
-from ._manipulation_moveit_commander import ManipulationMoveItCommander
+from ._manipulation_moveit_commander import ManipulationMoveItDriver
 
 from std_srvs.srv import Empty
 
@@ -19,7 +19,7 @@ from rv_manipulation_msgs.msg import MoveGripperAction, MoveGripperGoal, MoveGri
 from rv_manipulation_msgs.srv import Names, NamesResponse
 from rv_manipulation_msgs.srv import LinkPose, LinkPoseResponse
 
-class ManipulationCommander(object):
+class ManipulationDriver(object):
   def __init__(self, moveit_commander=None):
     self.switcher = ControlSwitcher()
     
@@ -62,7 +62,7 @@ class ManipulationCommander(object):
           controller['topic_type']
         ))
     
-    self.moveit_commander = moveit_commander if moveit_commander else ManipulationMoveItCommander(group_name=self.move_group)
+    self.moveit_commander = moveit_commander if moveit_commander else ManipulationMoveItDriver(group_name=self.move_group)
 
     self.pose_server = actionlib.SimpleActionServer(
       'cartesian/pose', 

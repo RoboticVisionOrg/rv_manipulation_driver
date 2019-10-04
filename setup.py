@@ -5,7 +5,7 @@ from catkin_pkg.python_setup import generate_distutils_setup
 
 # fetch values from package.xml
 setup_args = generate_distutils_setup(
-    packages=['rv_manipulation_commander'],
+    packages=['rv_manipulation_driver'],
     package_dir={'': 'src'})
 
 setup(**setup_args)
