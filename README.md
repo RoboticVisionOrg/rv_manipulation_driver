@@ -1,5 +1,7 @@
 # RV Manipulation Driver (RMD)
 
+**NOTE: This package defines a generic interface for using a manipulator; it is NOT intended to be run directly. To use the driver with your manipulator, you must use a package that implements the driver for your arm (e.g. "rv_panda_driver")** 
+
 ## Overview
 
 The RV Manipulation Driver (RMD) provides a simple unified mechanism for building high-level interface configurations for seamlessly controlling a broad range of manipulators under different actuation modes.
@@ -64,34 +66,34 @@ Out of the box RMD provides access to a simple Pose Control and Named Pose Contr
 
 #### Pose Control
 
-- **cartesian/pose/goal** ([rv_manipulation_msgs/MoveToPoseGoal](https://bitbucket.org/acrv/rv_manipulation_msgs/src/master/action/MoveToPose.action))
+- **cartesian/pose/goal** ([rv_msgs/MoveToPoseGoal](https://bitbucket.org/acrv/rv_msgs/src/master/action/MoveToPose.action))
 Moves the end-effector to the requested goal pose w.r.t. the base frame.
 
 - **cartesian/pose/cancel** ([actionlib_msgs/GoalID](http://docs.ros.org/api/actionlib_msgs/html/msg/GoalID.html))
 Cancels the currently executing goal.
 
-- **cartesian/pose/feedback** ([rv_manipulation_msgs/MoveToPoseGoal](https://bitbucket.org/acrv/rv_manipulation_msgs/src/master/action/MoveToPose.action))
+- **cartesian/pose/feedback** ([rv_msgs/MoveToPoseGoal](https://bitbucket.org/acrv/rv_msgs/src/master/action/MoveToPose.action))
 Feedback from the currently executing goal.
 
 - **cartesian/pose/status** ([actionlib_msgs/GoalStatusArray](http://docs.ros.org/api/actionlib_msgs/html/msg/GoalStatusArray.html))
 Status information on goals sent to the driver.
 
-- **cartesian/pose/result** ([rv_manipulation_msgs/MoveToPoseGoal](https://bitbucket.org/acrv/rv_manipulation_msgs/src/master/action/MoveToPose.action))
+- **cartesian/pose/result** ([rv_msgs/MoveToPoseGoal](https://bitbucket.org/acrv/rv_msgs/src/master/action/MoveToPose.action))
 The result of the pose goal request.
 
 #### Named Pose Control
 
-- **cartesian/named_pose/goal** ([rv_manipulation_msgs/MoveToNamedPoseGoal](https://bitbucket.org/acrv/rv_manipulation_msgs/src/master/action/MoveToNamedPose.action))
+- **cartesian/named_pose/goal** ([rv_msgs/MoveToNamedPoseGoal](https://bitbucket.org/acrv/rv_msgs/src/master/action/MoveToNamedPose.action))
 Moves the end-effector to a pre-defined joint configuration.
 
 - **cartesian/named_pose/cancel** ([actionlib_msgs/GoalID](http://docs.ros.org/api/actionlib_msgs/html/msg/GoalID.html))
 Cancels the currently executing goal.
 
-- **cartesian/named_pose/feedback** ([rv_manipulation_msgs/MoveToNamedPoseFeedback]((https://bitbucket.org/acrv/rv_manipulation_msgs/src/master/action/MoveToNamedPose.action)))
+- **cartesian/named_pose/feedback** ([rv_msgs/MoveToNamedPoseFeedback]((https://bitbucket.org/acrv/rv_msgs/src/master/action/MoveToNamedPose.action)))
 Feedback from the currently executing goal.
 
 - **cartesian/named_pose/status** ([actionlib_msgs/GoalStatusArray](http://docs.ros.org/api/actionlib_msgs/html/msg/GoalStatusArray.html))
 Status information on goals sent to the driver.
 
-- **cartesian/named_pose/result** ([rv_manipulation_msgs/MoveToNamedPoseResult]((https://bitbucket.org/acrv/rv_manipulation_msgs/src/master/action/MoveToNamedPose.action)))
+- **cartesian/named_pose/result** ([rv_msgs/MoveToNamedPoseResult]((https://bitbucket.org/acrv/rv_msgs/src/master/action/MoveToNamedPose.action)))
 The result of the goal request.

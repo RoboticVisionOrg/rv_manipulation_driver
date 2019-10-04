@@ -1,8 +1,8 @@
 import rospy
 import actionlib
 
-from rv_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseGoal
-from rv_manipulation_msgs.srv import LinkPose
+from rv_msgs.msg import MoveToPoseAction, MoveToPoseGoal
+from rv_msgs.srv import GetRelativePose
 
 from geometry_msgs.msg import PoseStamped
 
@@ -14,7 +14,8 @@ client = actionlib.SimpleActionClient('/cartesian/pose', MoveToPoseAction)
 client.wait_for_server()
 
 # Create a ros service client
-get_pose = rospy.ServiceProxy('/get_link_position', LinkPose)
+# TODO probably move this out to somewhere more general
+get_pose = rospy.ServiceProxy('/get_link_position', GetRelativePose)
 get_pose.wait_for_service()
 
 # Get the current position of panda hand w.r.t. the panda base
@@ -25,7 +26,7 @@ target = current.pose
 target.pose.position.z += 0.1
 print(target)
 # Adjust target to move 10cm above ready pose and create new goal
-goal = MoveToPoseGoal(pose=target)
+goal = MoveToPoseGoal(goal_pose=target)
 
 # Seng goal and wait for it to finish
 client.send_goal(goal)

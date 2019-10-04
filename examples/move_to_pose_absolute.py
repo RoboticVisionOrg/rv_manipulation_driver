@@ -1,7 +1,7 @@
 import rospy
 import actionlib
 
-from rv_manipulation_msgs.msg import MoveToPoseAction, MoveToPoseGoal
+from rv_msgs.msg import MoveToPoseAction, MoveToPoseGoal
 from geometry_msgs.msg import PoseStamped
 
 # initialise ros node
@@ -26,7 +26,7 @@ target.pose.orientation.z =  0.00
 target.pose.orientation.w =  0.00
 
 # Create goal from target pose
-goal = MoveToPoseGoal(pose=target)
+goal = MoveToPoseGoal(goal_pose=target)
 
 # Send goal and wait for it to finish
 client.send_goal(goal)

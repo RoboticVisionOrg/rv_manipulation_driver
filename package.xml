@@ -8,10 +8,11 @@
   <license>BSD</license>
 
   <url type="website">http://robotics.qut.edu.au</url>
-  
+
   <buildtool_depend>catkin</buildtool_depend>
   <exec_depend>moveit_commander</exec_depend>
-  
+  <depend>rv_msgs</depend>
+
   <export>
   </export>
 </package>
