@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 
 from ._control_switcher import ControlSwitcher
 from ._action_proxy import ActionProxy
-from ._manipulation_moveit_commander import ManipulationMoveItDriver
+from ._manipulation_moveit_driver import ManipulationMoveItDriver
 
 from std_srvs.srv import Empty
 
@@ -118,7 +118,7 @@ class ManipulationDriver(object):
                 'position_joint_trajectory_controller')
 
         self.moveit_commander.stop()
-        self.moveit_commander.goto_pose(goal.pose)
+        self.moveit_commander.goto_pose(goal.goal_pose)
         self.pose_server.set_succeeded(MoveToPoseResult(result=0))
 
     def gripper_cb(self, goal):
