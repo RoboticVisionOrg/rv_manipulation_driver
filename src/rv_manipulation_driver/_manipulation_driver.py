@@ -165,12 +165,12 @@ class ManipulationDriver(object):
 
     def get_link_pose_cb(self, req):
         (trans,
-         rot) = self.tf_listener.lookupTransform(req.base_frame, req.link_name,
+         rot) = self.tf_listener.lookupTransform(req.frame_reference, req.frame_target,
                                                  rospy.Time(0))
         response = GetRelativePoseResponse()
 
         response.relative_pose.header.stamp = rospy.Time.now()
-        response.relative_pose.header.frame_id = req.base_frame
+        response.relative_pose.header.frame_id = req.frame_reference
 
         response.relative_pose.pose.position.x = trans[0]
         response.relative_pose.pose.position.y = trans[1]

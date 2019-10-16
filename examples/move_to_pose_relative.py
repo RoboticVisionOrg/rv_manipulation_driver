@@ -22,7 +22,7 @@ get_pose.wait_for_service()
 current = get_pose('panda_hand', 'panda_link0')
 print(current)
 # Create a target pose based on our current position but moving up 10cm on the z axis
-target = current.pose
+target = current.relative_pose
 target.pose.position.z += 0.1
 print(target)
 # Adjust target to move 10cm above ready pose and create new goal
@@ -33,7 +33,7 @@ client.send_goal(goal)
 client.wait_for_result()
 
 # Adjust target to original position and create new goal
-target = current.pose
+target = current.relative_pose
 target.pose.position.z -= 0.1
 
 # Seng goal and wait for it to finish

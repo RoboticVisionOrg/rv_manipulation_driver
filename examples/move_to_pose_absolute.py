@@ -34,7 +34,7 @@ client.wait_for_result()
 
 # Adjust to move 10cm above ready pose and create new goal
 target.pose.position.z += 0.1
-goal = MoveToPoseGoal(pose=target)
+goal = MoveToPoseGoal(goal_pose=target)
 
 # Seng goal and wait for it to finish
 client.send_goal(goal)
@@ -43,7 +43,7 @@ client.wait_for_result()
 
 # Move back to original target position
 target.pose.position.z -= 0.1
-goal = MoveToPoseGoal(pose=target)
+goal = MoveToPoseGoal(goal_pose=target)
 
 # Seng goal and wait for it to finish
 client.send_goal(goal)
