@@ -32,6 +32,13 @@ class ManipulationMoveItDriver(object):
             self.groups[group_name] = moveit_commander.MoveGroupCommander(group_name)
         self.active_group = self.groups[group_name]
 
+  def get_joint_values(self, group_name=None):
+    if group_name:
+        self.set_group(group_name)
+    if not self.active_group:
+        raise ValueError('No active Planning Group')
+    return self.active_group.get_current_joint_values()
+
   def goto_joints(self, joint_values, group_name=None, wait=True):
     if group_name:
         self.set_group(group_name)

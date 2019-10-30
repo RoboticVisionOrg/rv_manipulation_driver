@@ -35,14 +35,11 @@ class ControlSwitcher(object):
           selected = controller
           break
 
-      if not selected:
-        raise Exception('Unknown controller:', controller_name)
-      
       required = [item for claimed in controller.claimed_resources for item in claimed.resources]
 
-      start_controllers = [controller_name]
+      start_controllers = [controller_name] if controller_name else []
+      stop_controllers = [self.get_current_name()] if not controller_name else []
 
-      stop_controllers = []
       for controller in controllers:
           if controller.name == controller_name:
             continue
