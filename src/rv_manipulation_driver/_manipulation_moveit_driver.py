@@ -39,7 +39,7 @@ class ManipulationMoveItDriver(object):
         raise ValueError('No active Planning Group')
     return self.active_group.get_current_joint_values()
 
-  def goto_joints(self, joint_values, group_name=None, wait=True):
+  def goto_joints(self, joint_values, velocity=0.5, group_name=None, wait=True):
     if group_name:
         self.set_group(group_name)
     if not self.active_group:
@@ -51,6 +51,7 @@ class ManipulationMoveItDriver(object):
     for i, v in enumerate(joint_values):
         joint_goal[i] = v
 
+    self.active_group.set_max_velocity_scaling_factor(velocity)
     success = self.active_group.go(joint_goal, wait)
     self.active_group.stop()
     return success
