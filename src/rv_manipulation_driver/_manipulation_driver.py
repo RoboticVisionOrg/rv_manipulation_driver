@@ -158,7 +158,11 @@ class ManipulationDriver(object):
         self.gripper_server.set_succeeded(ActuateGripperResult(result=1))
 
   def location_cb(self, goal):
-    self.__move_to_named(goal.pose_name)
+    result = self.__move_to_named(goal.pose_name)
+    if result:
+      self.location_server.set_succeeded(MoveToNamedPoseResult(result=0))
+    else:
+      self.location_server.set_aborted(MoveToNamedPoseResult(result=1))
 
   def home_cb(self, req):
     self.__move_to_named('ready')
