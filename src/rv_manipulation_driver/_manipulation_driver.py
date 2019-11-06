@@ -54,51 +54,57 @@ class ManipulationDriver(object):
 
     self.tf_listener = tf.TransformListener()
 
-    rospy.Service('get_named_arm_poses', GetNamesList, self.get_named_poses_cb)
-    rospy.Service('set_named_pose', SetNamedPose, self.set_named_pose_cb)
+    rospy.Service('arm/get_named_poses', GetNamesList, self.get_named_poses_cb)
+    rospy.Service('arm/set_named_pose', SetNamedPose, self.set_named_pose_cb)
 
-    rospy.Service('get_link_position', GetRelativePose, self.get_link_pose_cb)
+    rospy.Service('arm/get_link_position', GetRelativePose, self.get_link_pose_cb)
+
+    rospy.Service('arm/home', Empty, self.home_cb)
+    rospy.Service('arm/recover', Empty, self.recover_cb)
+    rospy.Service('arm/stop', Empty, self.stop_cb)
+
+    rospy.Service('arm/set_cartesian_impedance', SetCartesianImpedance, self.set_cartesian_impedance_cb)
+    
 
     self.action_proxies = []
     self.publishers = []
 
-    # for controller in self.controllers:
-    #     if controller['type'] == 'publisher':
-    #         self.publishers.append(
-    #             self.create_publisher(
-    #                 controller['controller'], controller['name'],
-    #                 controller['maps'] if 'maps' in controller else None,
-    #                 controller['topic_type']))
+    for controller in self.controllers:
+        if controller['type'] == 'publisher':
+            self.publishers.append(
+                self.create_publisher(
+                    controller['controller'], controller['name'],
+                    controller['maps'] if 'maps' in controller else None,
+                    controller['topic_type']))
 
-    #     if controller['type'] == 'action_server':
-    #         self.action_proxies.append(
-    #             self.create_action_server(
-    #                 controller['controller'], controller['name'],
-    #                 controller['maps'] if 'maps' in controller else None,
-    #                 controller['topic_type']))
+        if controller['type'] == 'action_server':
+            self.action_proxies.append(
+                self.create_action_server(
+                    controller['controller'], controller['name'],
+                    controller['maps'] if 'maps' in controller else None,
+                    controller['topic_type']))
 
 
-    self.velocity_subscriber = rospy.Subscriber('/cartesian/velocity', TwistStamped, self.velocity_cb)
-    
-    self.state_publisher = rospy.Publisher('/state', ManipulatorState, queue_size=1)
+    self.velocity_subscriber = rospy.Subscriber('arm/cartesian/velocity', TwistStamped, self.velocity_cb)
+    self.state_publisher = rospy.Publisher('arm/state', ManipulatorState, queue_size=1)
     
     self.moveit_commander = moveit_commander if moveit_commander else ManipulationMoveItDriver(
         group_name=self.move_group)
 
     self.pose_server = actionlib.SimpleActionServer(
-        'cartesian/pose',
+        'arm/cartesian/pose',
         MoveToPoseAction,
         execute_cb=self.pose_cb,
         auto_start=False)
 
     self.location_server = actionlib.SimpleActionServer(
-        'cartesian/named_pose',
+        'arm/cartesian/named_pose',
         MoveToNamedPoseAction,
         execute_cb=self.location_cb,
         auto_start=False)
 
     self.gripper_server = actionlib.SimpleActionServer(
-        'gripper',
+        'arm/gripper',
         ActuateGripperAction,
         execute_cb=self.gripper_cb,
         auto_start=False)
@@ -107,11 +113,6 @@ class ManipulationDriver(object):
     self.location_server.start()
     self.gripper_server.start()
 
-    rospy.Service('home', Empty, self.home_cb)
-    rospy.Service('recover', Empty, self.recover_cb)
-    rospy.Service('stop', Empty, self.stop_cb)
-
-    rospy.Service('cartesian/impedance', SetCartesianImpedance, self.set_cartesian_impedance_cb)
     # rospy.Service('force_torque_limits', SetForceTorqueImpedance, self.set_force_torque_cb)
 
   def create_publisher(self, controller_name, topic_in, topic_out,

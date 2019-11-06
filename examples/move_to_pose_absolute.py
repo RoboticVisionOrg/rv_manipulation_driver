@@ -8,7 +8,7 @@ from geometry_msgs.msg import PoseStamped
 rospy.init_node('move_to_points_example')
 
 # Create a ros action client to communicate with the controller
-client = actionlib.SimpleActionClient('/cartesian/pose', MoveToPoseAction)
+client = actionlib.SimpleActionClient('/arm/cartesian/pose', MoveToPoseAction)
 client.wait_for_server()
 
 # Create a target pose

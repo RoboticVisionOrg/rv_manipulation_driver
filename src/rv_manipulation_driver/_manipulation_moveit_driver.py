@@ -2,6 +2,7 @@
 
 import rospy
 import actionlib
+import os
 
 from math import pi
 

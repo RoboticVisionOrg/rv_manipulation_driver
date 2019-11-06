@@ -10,12 +10,12 @@ from geometry_msgs.msg import PoseStamped
 rospy.init_node('move_to_points_example')
 
 # Create a ros action client to communicate with the controller
-client = actionlib.SimpleActionClient('/cartesian/pose', MoveToPoseAction)
+client = actionlib.SimpleActionClient('/arm/cartesian/pose', MoveToPoseAction)
 client.wait_for_server()
 
 # Create a ros service client
 # TODO probably move this out to somewhere more general
-get_pose = rospy.ServiceProxy('/get_link_position', GetRelativePose)
+get_pose = rospy.ServiceProxy('/arm/get_link_position', GetRelativePose)
 get_pose.wait_for_service()
 
 # Get the current position of panda hand w.r.t. the panda base
