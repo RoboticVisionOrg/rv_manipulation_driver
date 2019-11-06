@@ -24,7 +24,8 @@ class ControlSwitcher(object):
     return None
 
   def get_current_name(self):
-    return self.get_current().name
+    current = self.get_current()
+    return current.name if current else ''
 
   def switch_controller(self, controller_name):
       controllers = self.lister_srv().controller
