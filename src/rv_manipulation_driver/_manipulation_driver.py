@@ -33,7 +33,9 @@ class ManipulationDriver(object):
 
     # params
     self.controllers = rospy.get_param('~controllers', None)
+
     self.config_path = rospy.get_param('~config_path', os.path.join(os.environ.get('HOME'), '.ros/configs/manipulation_driver.yaml'))
+    self.custom_configs = []
 
     self.__load_config()
 
@@ -56,6 +58,10 @@ class ManipulationDriver(object):
 
     rospy.Service('arm/get_named_poses', GetNamesList, self.get_named_poses_cb)
     rospy.Service('arm/set_named_pose', SetNamedPose, self.set_named_pose_cb)
+
+    rospy.Service('arm/add_named_pose_config', SetNamedPoseConfig, self.add_named_pose_config_cb)
+    rospy.Service('arm/remove_named_pose_config', SetNamedPoseConfig, self.remove_named_pose_config_cb)
+    rospy.Service('arm/get_named_pose_configs', GetNamedPoseConfigs, self.get_named_pose_configs_cb)
 
     rospy.Service('arm/get_link_position', GetRelativePose, self.get_link_pose_cb)
 
@@ -261,6 +267,19 @@ class ManipulationDriver(object):
 
     return pose
 
+  def add_named_poses_cb(self, request):
+    self.custom_configs.append(request.config_path)
+    self.__load_config()
+    return True
+  
+  def remove_named_poses_cb(self, request):
+    self.custom_configs.remove(request.config_path)
+    self.__load_config()
+    return True
+
+  def get_named_pose_configs_cb(self, request):
+    return self.custom_configs
+
   def __move_to_named(self, named):
     if self.switcher.get_current_name(
     ) != 'position_joint_trajectory_controller':
@@ -285,6 +304,10 @@ class ManipulationDriver(object):
 
     config = yaml.load(open(self.config_path))
     self.named_poses = config['named_poses']
+
+    for config_name in self.custom_configs:
+      config = yaml.load(open(self.config_path))
+      self.named_poses.update(config)
     
   def run(self):
     rospy.spin()
