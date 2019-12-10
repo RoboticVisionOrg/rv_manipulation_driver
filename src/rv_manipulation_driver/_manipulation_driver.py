@@ -56,6 +56,7 @@ class ManipulationDriver(object):
 
     self.tf_listener = tf.TransformListener()
 
+    # Setup generic services
     rospy.Service('arm/get_named_poses', GetNamesList, self.get_named_poses_cb)
     rospy.Service('arm/set_named_pose', SetNamedPose, self.set_named_pose_cb)
 
@@ -172,7 +173,7 @@ class ManipulationDriver(object):
       self.location_server.set_aborted(MoveToNamedPoseResult(result=1))
 
   def home_cb(self, req):
-    self.__move_to_named('ready')
+    rospy.logwarn('Homing not implemented for this arm')
     return []
 
   def stop_cb(self, req):
@@ -180,9 +181,11 @@ class ManipulationDriver(object):
     return []
 
   def recover_cb(self, req):
+    rospy.logwarn('Recovery not implemented for this arm')
     return []
 
   def set_cartesian_impedance_cb(self, req):
+    rospy.logwarn('Setting cartesian impedance not implemented for this arm')
     return True
 
   def get_named_poses_cb(self, req):
