@@ -31,22 +31,18 @@ class ManipulationDriver(object):
   def __init__(self, moveit_commander=None):
     self.switcher = ControlSwitcher()
 
-    # params
+    # Load parameters
     self.controllers = rospy.get_param('~controllers', None)
 
+    # Load host specific arm configuration
     self.config_path = rospy.get_param('~config_path', os.path.join(os.environ.get('HOME'), '.ros/configs/manipulation_driver.yaml'))
     self.custom_configs = []
 
     self.__load_config()
 
+    # Create default moveit commander if arm specific moveit_commander not supplied
     if not moveit_commander:
         self.move_group = rospy.get_param('~move_group', None)
-
-    if not self.controllers:
-        rospy.logerr(
-            'Unable to load controllers from rosparam server path: controllers'
-        )
-        sys.exit(1)
 
     if not self.move_group:
         rospy.logerr(
@@ -54,6 +50,7 @@ class ManipulationDriver(object):
         )
         sys.exit(1)
 
+    # Setup transform listener
     self.tf_listener = tf.TransformListener()
 
     # Setup generic services
@@ -66,13 +63,14 @@ class ManipulationDriver(object):
 
     rospy.Service('arm/get_link_position', GetRelativePose, self.get_link_pose_cb)
 
+    # Setup arm specific services (%see arm driver for implementation)
     rospy.Service('arm/home', Empty, self.home_cb)
     rospy.Service('arm/recover', Empty, self.recover_cb)
     rospy.Service('arm/stop', Empty, self.stop_cb)
 
     rospy.Service('arm/set_cartesian_impedance', SetCartesianImpedance, self.set_cartesian_impedance_cb)
     
-
+    # Setup dynamic republisher mappings
     self.action_proxies = []
     self.publishers = []
 
@@ -92,9 +90,11 @@ class ManipulationDriver(object):
                     controller['topic_type']))
 
 
+    ## Setup arm specific publishers (%see arm driver for implementation)
     self.velocity_subscriber = rospy.Subscriber('arm/cartesian/velocity', TwistStamped, self.velocity_cb)
     self.state_publisher = rospy.Publisher('arm/state', ManipulatorState, queue_size=1)
     
+    ## Setup generic action servers
     self.moveit_commander = moveit_commander if moveit_commander else ManipulationMoveItDriver(
         group_name=self.move_group)
 
@@ -122,8 +122,19 @@ class ManipulationDriver(object):
 
     # rospy.Service('force_torque_limits', SetForceTorqueImpedance, self.set_force_torque_cb)
 
-  def create_publisher(self, controller_name, topic_in, topic_out,
-                        topic_type_name):
+  def create_publisher(self, controller_name, topic_in, topic_out, topic_type_name):
+    """
+    Creates a republisher for a custom controller
+
+    Args:
+        controller_name: The controller name registered in the controller switcher.
+        topic_in: The topic being subscribed to by the manipulation driver
+        topic_out: The topic name subscribed to by the controller
+        topic_type_name: The topic type used by topic_in and topic_out
+
+    Returns:
+        A subscriber for topic_in with a callback to republish to topic_out
+    """
     topic_type = self.__get_topic_type(topic_type_name)
 
     if topic_out:
@@ -138,10 +149,13 @@ class ManipulationDriver(object):
 
     return rospy.Subscriber(topic_in, topic_type, _callback, queue_size=1)
 
-  def velocity_cb(self, msg):
-    pass
-
   def pose_cb(self, goal):
+    """
+    ROS Action Server callback - Moves the end-effector to the cartesian pose indicated by goal
+
+    Args:
+        goal (rv_msgs/MoveToPoseActionGoal): the goal pose of the end-effector after the motion is complete
+    """
     if self.switcher.get_current_name() != 'position_joint_trajectory_controller':
         self.switcher.switch_controller('position_joint_trajectory_controller')
 
@@ -150,6 +164,12 @@ class ManipulationDriver(object):
     self.pose_server.set_succeeded(MoveToPoseResult(result=0))
 
   def gripper_cb(self, goal):
+    """
+    ROS Action Server callback - Actuates the gripper to move to either a fixed width or to grasp an object of specified width
+
+    Args:
+        goal (rv_msgs/ActuateGripperActionGoal): the actuation goal for the gripper
+    """
     if goal.mode == ActuateGripperGoal.MODE_GRASP:
         result = self.moveit_commander.grasp(goal.width, goal.e_outer,
                                               goal.e_inner, goal.speed,
@@ -166,29 +186,85 @@ class ManipulationDriver(object):
         self.gripper_server.set_succeeded(ActuateGripperResult(result=1))
 
   def location_cb(self, goal):
+    """
+    ROS Action Server callback - Moves the arm the named pose indicated by goal
+
+    Args:
+        goal (rv_msgs/MoveToNamedPoseActionGoal): the goal pose of the arm after the motion is complete
+    """
     result = self.__move_to_named(goal.pose_name)
     if result:
       self.location_server.set_succeeded(MoveToNamedPoseResult(result=0))
     else:
       self.location_server.set_aborted(MoveToNamedPoseResult(result=1))
 
-  def home_cb(self, req):
-    rospy.logwarn('Homing not implemented for this arm')
-    return []
-
   def stop_cb(self, req):
+    """
+    ROS Service callback - Stops any current arm motion
+
+    Args:
+        req (std_srv/Empty): An empty request
+    Returns:
+        Empty list
+    """
     self.moveit_commander.stop()
     return []
 
+  def velocity_cb(self, msg):
+    """
+    ROS Service callback (ARM SPECIFIC) - Moves the arm at the specified cartesian velocity w.r.t. a target frame
+
+    Args:
+        msg (geometry_msgs/TwistStamped): The velocity with a target frame id
+    """
+    rospy.logwarn('Velocity controller not implemented for this arm')
+    pass
+
+  def home_cb(self, req):
+    """
+    ROS Service callback (ARM SPECIFIC) - Sends to the arm to its home pose
+
+    Args:
+        req (std_srv/Empty): An empty request
+    Returns:
+        Empty list
+    """
+    rospy.logwarn('Homing not implemented for this arm')
+    return []
+
   def recover_cb(self, req):
+    """
+    ROS Service callback (ARM SPECIFIC) - Forces the arm to recovers from any internal errors
+
+    Args:
+        req (std_srv/Empty): An empty request
+    Returns:
+        Empty list
+    """
     rospy.logwarn('Recovery not implemented for this arm')
     return []
 
   def set_cartesian_impedance_cb(self, req):
+    """
+    ROS Service callback (ARM SPECIFIC) - Sets the current impedence of the arm in cartesian space
+
+    Args:
+        req (rv_msgs/SetCartesianImpedance): Impedence values in cartesian space
+    Returns:
+        True if successful, False otherwise
+    """
     rospy.logwarn('Setting cartesian impedance not implemented for this arm')
     return True
 
   def get_named_poses_cb(self, req):
+    """
+    ROS Service callback - Retrieves the list of named poses available to the arm
+
+    Args:
+        req (rv_msgs/GetNamesList): An empty request
+    Returns:
+        The list of named poses available for the arm
+    """
     poses = []
     if rospy.has_param('robot_description_semantic'):
         robot_description = rospy.get_param('robot_description_semantic')
@@ -201,6 +277,14 @@ class ManipulationDriver(object):
     return GetNamesListResponse(poses + self.named_poses.keys())
 
   def set_named_pose_cb(self, req):
+    """
+    ROS Service callback - Adds the current arm pose as a named pose and saves it to the host config
+
+    Args:
+        req (rv_msgs/SetNamePoseList): The name of the pose as well as whether to overwrite if the pose already exists
+    Returns:
+        True if the named pose was written successfully otherwise false
+    """
     if req.pose_name in self.named_poses and not req.overwrite:
       rospy.logerr('Named pose already exists.')
       return SetNamedPoseResponse(success=False)
@@ -213,11 +297,27 @@ class ManipulationDriver(object):
     return SetNamedPoseResponse(success=True)
 
   def get_link_pose_cb(self, req):
+    """
+    ROS Service callback - Gets the transform between two links (frames).
+
+    Args:
+        req (rv_msgs/GetRelativePose): The name of the pose as well as whether to overwrite if the pose already exists
+    Returns:
+        GetRelativePoseResponse: the transform between the two frames as a pose
+    """
     response = GetRelativePoseResponse()
     response.relative_pose = self.get_link_pose(req.frame_reference, req.frame_target)
     return response
 
   def transform_velocity(self, msg, frame_target):
+    """
+    Transforms a velocity from a specified frame to a target frame
+    Args:
+        msg (geometry_msgs/TwistStamped): The velocity to transform
+        frame_target: The target frame id
+    Returns:
+        Twist: a velocity in w.r.t. frame_target
+    """
     if not msg.header.frame_id:
       return msg.twist
 
