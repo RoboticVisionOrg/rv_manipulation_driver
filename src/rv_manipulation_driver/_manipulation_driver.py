@@ -25,6 +25,7 @@ from rv_msgs.msg import ActuateGripperAction, ActuateGripperGoal, ActuateGripper
 from rv_msgs.srv import GetNamesList, GetNamesListResponse, SetNamedPose, SetNamedPoseResponse
 from rv_msgs.srv import GetRelativePose, GetRelativePoseResponse
 from rv_msgs.srv import SetCartesianImpedance, SetCartesianImpedanceResponse
+from rv_msgs.srv import SetNamedPoseConfig, GetNamedPoseConfigs
 
 class ManipulationDriver(object):
 
@@ -43,6 +44,10 @@ class ManipulationDriver(object):
     # Create default moveit commander if arm specific moveit_commander not supplied
     if not moveit_commander:
         self.move_group = rospy.get_param('~move_group', None)
+
+    self.base_frame = rospy.get_param('~base_frame', 'base_link')
+    self.ee_frame = rospy.get_param('~ee_frame', 'ee_link')
+    self.home_pose = rospy.get_param('~home_pose', 'home')
 
     if not self.move_group:
         rospy.logerr(
@@ -159,6 +164,9 @@ class ManipulationDriver(object):
     if self.switcher.get_current_name() != 'position_joint_trajectory_controller':
         self.switcher.switch_controller('position_joint_trajectory_controller')
 
+    if goal.goal_pose.header.frame_id == '':
+      goal.goal_pose.header.frame_id = 'panda_link0'
+    
     self.moveit_commander.stop()
     self.moveit_commander.goto_pose(goal.goal_pose)
     self.pose_server.set_succeeded(MoveToPoseResult(result=0))
@@ -209,6 +217,19 @@ class ManipulationDriver(object):
     """
     self.moveit_commander.stop()
     return []
+    
+  def home_cb(self, req):
+    """
+    ROS Service callback - Sends to the arm to its home pose and recovers from any errors
+
+    Args:
+        req (std_srv/Empty): An empty request
+    Returns:
+        Empty list
+    """
+    self.moveit_commander.recover()
+    self.__move_to_named(self.home_pose)
+    return []
 
   def velocity_cb(self, msg):
     """
@@ -220,18 +241,7 @@ class ManipulationDriver(object):
     rospy.logwarn('Velocity controller not implemented for this arm')
     pass
 
-  def home_cb(self, req):
-    """
-    ROS Service callback (ARM SPECIFIC) - Sends to the arm to its home pose
-
-    Args:
-        req (std_srv/Empty): An empty request
-    Returns:
-        Empty list
-    """
-    rospy.logwarn('Homing not implemented for this arm')
-    return []
-
+    
   def recover_cb(self, req):
     """
     ROS Service callback (ARM SPECIFIC) - Forces the arm to recovers from any internal errors
@@ -370,12 +380,12 @@ class ManipulationDriver(object):
 
     return pose
 
-  def add_named_poses_cb(self, request):
+  def add_named_pose_config_cb(self, request):
     self.custom_configs.append(request.config_path)
     self.__load_config()
     return True
   
-  def remove_named_poses_cb(self, request):
+  def remove_named_pose_config_cb(self, request):
     self.custom_configs.remove(request.config_path)
     self.__load_config()
     return True

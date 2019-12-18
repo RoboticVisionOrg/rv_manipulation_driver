@@ -119,3 +119,6 @@ class ManipulationMoveItDriver(object):
   def stop(self):
     if self.active_group:
         self.active_group.stop()
+
+  def recover(self):
+    pass
