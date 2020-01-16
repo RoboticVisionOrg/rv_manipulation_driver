@@ -412,14 +412,15 @@ class ManipulationDriver(object):
 
   def __load_config(self):
     self.named_poses = {}
-    
     for config_name in self.custom_configs:
       config = yaml.load(open(config_name))
-      self.named_poses.update(config)
+      if 'named_poses' in config:
+        self.named_poses.update(config['named_poses'])
 
     if os.path.exists(self.config_path):
       config = yaml.load(open(self.config_path))
-      self.named_poses.update(config)
-    
+      if 'named_poses' in config:
+        self.named_poses.update(config['named_poses'])
+
   def run(self):
     rospy.spin()
