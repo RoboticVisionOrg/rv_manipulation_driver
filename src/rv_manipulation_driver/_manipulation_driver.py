@@ -414,7 +414,7 @@ class ManipulationDriver(object):
     self.named_poses = {}
     
     for config_name in self.custom_configs:
-      config = yaml.load(open(self.config_path))
+      config = yaml.load(open(config_name))
       self.named_poses.update(config)
 
     if os.path.exists(self.config_path):
