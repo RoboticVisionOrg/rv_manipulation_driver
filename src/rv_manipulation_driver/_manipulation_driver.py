@@ -386,8 +386,9 @@ class ManipulationDriver(object):
     return True
   
   def remove_named_pose_config_cb(self, request):
-    self.custom_configs.remove(request.config_path)
-    self.__load_config()
+    if request.config_path in self.custom_configs:
+      self.custom_configs.remove(request.config_path)
+      self.__load_config()
     return True
 
   def get_named_pose_configs_cb(self, request):
