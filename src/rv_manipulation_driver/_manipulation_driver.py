@@ -17,7 +17,7 @@ from ._manipulation_moveit_driver import ManipulationMoveItDriver
 from ._transforms import tf_to_trans, pose_msg_to_trans, trans_to_pose_msg
 
 from std_srvs.srv import Empty
-from geometry_msgs.msg import PoseStamped, TwistStamped, Twist
+from geometry_msgs.msg import PoseStamped, Pose, TwistStamped, Twist
 
 from rv_msgs.msg import ManipulatorState
 from rv_msgs.msg import MoveToPoseAction, MoveToPoseResult
@@ -307,6 +307,7 @@ class ManipulationDriver(object):
       return SetNamedPoseResponse(success=False)
     
     self.named_poses[req.pose_name] = self.moveit_commander.get_joint_values()
+
     self.__write_config('named_poses', self.named_poses)
     
     return SetNamedPoseResponse(success=True)
@@ -320,7 +321,12 @@ class ManipulationDriver(object):
     Returns:
         True if the pose offset was updated successfully otherwise false
     """
+    current = self.switcher.get_current_name()
+    self.switcher.switch_controller(None)
+
     result = self.set_ee_offset(request.pose)
+
+    self.switcher.switch_controller(current)
     
     if result:
       self.__write_config('ee_offset', {
@@ -453,28 +459,56 @@ class ManipulationDriver(object):
   def __load_config(self):
     self.named_poses = {}
     for config_name in self.custom_configs:
-      config = yaml.load(open(config_name))
-      if 'named_poses' in config:
-        self.named_poses.update(config['named_poses'])
-      
-      if 'ee_offset' in config:
-        self.set_ee_offset(config['ee_offset'])
+      try:
+        config = yaml.load(open(config_name))
+        if config and 'named_poses' in config:
+          self.named_poses.update(config['named_poses'])
+      except IOError:
+        rospy.logwarn('Unable to locate configuration file: {}'.format(config_name))
 
     if os.path.exists(self.config_path):
-      config = yaml.load(open(self.config_path))
-      if 'named_poses' in config:
-        self.named_poses.update(config['named_poses'])
+      try:
+        config = yaml.load(open(self.config_path))
+        if config and 'named_poses' in config:
+          self.named_poses.update(config['named_poses'])
+
+        if config and 'ee_offset' in config:
+          offset = Pose()
+          
+          offset.position.x = config['ee_offset']['translation'][0]
+          offset.position.y = config['ee_offset']['translation'][1]
+          offset.position.z = config['ee_offset']['translation'][2]
+
+          offset.orientation.x = config['ee_offset']['rotation'][0]
+          offset.orientation.y = config['ee_offset']['rotation'][1]
+          offset.orientation.z = config['ee_offset']['rotation'][2]
+          offset.orientation.w = config['ee_offset']['rotation'][3]
+          
+          self.set_ee_offset(offset)
+
+      except IOError:
+        pass
 
   def __write_config(self, key, value):
-    current = {}
+    if not os.path.exists(os.path.dirname(self.config_path)):
+      os.makedirs(os.path.dirname(self.config_path))
 
-    with open(self.config_path) as f:
-      current = yaml.load(f.read())
+    config = {}
 
-    current.update({ key: value })
+    try:
+      with open(self.config_path) as f:
+        current = yaml.load(f.read())
 
-    with open(self.config_path, 'rw') as f:
-      f.write(current)
+        if current:
+          config = current
+
+    except IOError:
+      pass
+
+    config.update({ key: value })
+
+    with open(self.config_path, 'w') as f:
+      f.write(yaml.dump(config))
     
 
   def run(self):
