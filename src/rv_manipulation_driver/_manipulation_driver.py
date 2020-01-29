@@ -36,7 +36,7 @@ class ManipulationDriver(object):
     self.controllers = rospy.get_param('~controllers', None)
 
     # Load host specific arm configuration
-    self.config_path = rospy.get_param('~config_path', os.path.join(os.environ.get('HOME'), '.ros/configs/manipulation_driver.yaml'))
+    self.config_path = rospy.get_param('~config_path', os.path.join(os.getenv('HOME', '/root'), '.ros/configs/manipulation_driver.yaml'))
     self.custom_configs = []
 
     self.__load_config()
@@ -301,6 +301,9 @@ class ManipulationDriver(object):
     
     self.named_poses[req.pose_name] = self.moveit_commander.get_joint_values()
 
+    if not os.path.exists(os.path.dirname(self.config_path)):
+      os.makedirs(os.path.dirname(self.config_path))
+
     with open(self.config_path, 'w') as f:
       f.write(yaml.dump({ 'named_poses': self.named_poses }))
     
@@ -414,14 +417,20 @@ class ManipulationDriver(object):
   def __load_config(self):
     self.named_poses = {}
     for config_name in self.custom_configs:
-      config = yaml.load(open(config_name))
-      if 'named_poses' in config:
-        self.named_poses.update(config['named_poses'])
+      try:
+        config = yaml.load(open(config_name))
+        if config and 'named_poses' in config:
+          self.named_poses.update(config['named_poses'])
+      except IOError:
+        rospy.logwarn('Unable to locate configuration file: {}'.format(config_name))
 
     if os.path.exists(self.config_path):
-      config = yaml.load(open(self.config_path))
-      if 'named_poses' in config:
-        self.named_poses.update(config['named_poses'])
+      try:
+        config = yaml.load(open(self.config_path))
+        if config and 'named_poses' in config:
+          self.named_poses.update(config['named_poses'])
+      except IOError:
+        pass
 
   def run(self):
     rospy.spin()
