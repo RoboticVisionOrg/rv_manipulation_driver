@@ -18,7 +18,7 @@ class ManipulationMoveItDriver(object):
     self.scene = moveit_commander.PlanningSceneInterface()
 
     self.groups = {}
-    self.active_group = None
+    self.moactive_group = None
     self.set_group(group_name)
 
   def set_group(self, group_name):
@@ -108,6 +108,14 @@ class ManipulationMoveItDriver(object):
     success = self.active_group.go(wait=wait)
     self.active_group.stop()
     return success
+
+  def get_planner_ee_link(self, group_name=None):
+    if group_name:
+        self.set_group(group_name)
+    if not self.active_group:
+        raise ValueError('No active Planning Group')
+
+    return self.active_group.get_end_effector_link()
 
       
   def set_gripper(self, width, speed=0.1, wait=True):
