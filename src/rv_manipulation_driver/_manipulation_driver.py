@@ -16,7 +16,7 @@ from ._action_proxy import ActionProxy
 from ._manipulation_moveit_driver import ManipulationMoveItDriver
 from ._transforms import tf_to_trans, pose_msg_to_trans, trans_to_pose_msg
 
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty, SetBool, SetBoolResponse
 from geometry_msgs.msg import PoseStamped, Pose, TwistStamped, Twist
 
 from rv_msgs.msg import ManipulatorState
@@ -28,6 +28,7 @@ from rv_msgs.srv import GetRelativePose, GetRelativePoseResponse
 from rv_msgs.srv import SetCartesianImpedance, SetCartesianImpedanceResponse
 from rv_msgs.srv import SetNamedPoseConfig, GetNamedPoseConfigs
 from rv_msgs.srv import SetPose, SetPoseResponse
+from rv_msgs.srv import SimpleRequest, SimpleRequestResponse
 
 class ManipulationDriver(object):
 
@@ -42,6 +43,8 @@ class ManipulationDriver(object):
     self.custom_configs = []
 
     self.__load_config()
+
+    self.cartesian_planning_enabled = False
 
     # Create default moveit commander if arm specific moveit_commander not supplied
     if not moveit_commander:
@@ -71,6 +74,9 @@ class ManipulationDriver(object):
     rospy.Service('arm/get_link_position', GetRelativePose, self.get_link_pose_cb)
 
     rospy.Service('arm/set_ee_offset', SetPose, self.set_ee_offset_cb)
+
+    rospy.Service('arm/set_cartesian_planning_enabled', SetBool, self.set_cartesian_planning_enabled_cb)
+    rospy.Service('arm/get_cartesian_planning_enabled', SimpleRequest, self.get_cartesian_planning_enabled_cb)
 
     # Setup arm specific services (%see arm driver for implementation)
     rospy.Service('arm/home', Empty, self.home_cb)
@@ -175,8 +181,13 @@ class ManipulationDriver(object):
       goal.goal_pose.pose = trans_to_pose_msg(desired)
    
     self.moveit_commander.stop()
-    self.moveit_commander.goto_pose(goal.goal_pose)
-    self.pose_server.set_succeeded(MoveToPoseResult(result=0))
+
+    if self.cartesian_planning_enabled:
+      success = self.moveit_commander.goto_pose_cartesian(goal.goal_pose)
+    else:
+      success = self.moveit_commander.goto_pose(goal.goal_pose)
+
+    self.pose_server.set_succeeded(MoveToPoseResult(result=0 if success else 1))
 
   def gripper_cb(self, goal):
     """
@@ -338,6 +349,13 @@ class ManipulationDriver(object):
       })
 
     return SetPoseResponse(success=result)    
+
+  def set_cartesian_planning_enabled_cb(self, request):
+    self.cartesian_planning_enabled = request.data
+    return SetBoolResponse(success=True)
+
+  def get_cartesian_planning_enabled_cb(self, request):
+    return SimpleRequestResponse(result=True)
 
   def get_link_pose_cb(self, req):
     """
