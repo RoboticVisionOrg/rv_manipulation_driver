@@ -3,30 +3,46 @@ import controller_manager_msgs.srv as cm_srv
 
 class ControlSwitcher(object):
   def __init__(self, controller_manager_node='/controller_manager', robot_resource_name='panda'):
-    rospy.wait_for_service(controller_manager_node + '/switch_controller')
-    rospy.wait_for_service(controller_manager_node + '/list_controllers')
-    self.switcher_srv = rospy.ServiceProxy(controller_manager_node + '/switch_controller', cm_srv.SwitchController)
-    self.lister_srv = rospy.ServiceProxy(controller_manager_node + '/list_controllers', cm_srv.ListControllers)
-
     self.robot_resource_name = robot_resource_name
+    self.controller_manager_node = controller_manager_node
+
+    self.reconnect()
+
+    self.__current = ''
+    self.__last_update = rospy.get_time()
+
+  def reconnect(self):
+    rospy.wait_for_service(self.controller_manager_node + '/switch_controller')
+    rospy.wait_for_service(self.controller_manager_node + '/list_controllers')
     
-  def get_current(self):
-    controllers = self.lister_srv().controller
-    for controller in controllers:
-        if controller.state != 'running':
-          continue
-        
-        resources = [item for claimed in controller.claimed_resources for item in claimed.resources]
-        
-        if len(list(resource for resource in resources if resource.startswith(self.robot_resource_name))):
-          return controller
-
-    return None
-
+    self.switcher_srv = rospy.ServiceProxy(self.controller_manager_node + '/switch_controller', cm_srv.SwitchController)
+    self.lister_srv = rospy.ServiceProxy(self.controller_manager_node + '/list_controllers', cm_srv.ListControllers)
+    
   def get_current_name(self):
-    current = self.get_current()
-    return current.name if current else ''
+    try:
+      current_time = rospy.get_time()
 
+      if not self.__current or current_time - self.__last_update > 5:
+        controllers = self.lister_srv().controller
+        for controller in controllers:
+            if controller.state != 'running':
+              continue
+            
+            resources = [item for claimed in controller.claimed_resources for item in claimed.resources]
+            
+            if len(list(resource for resource in resources if resource.startswith(self.robot_resource_name))):
+              self.__current = controller.name
+              break
+
+        self.__last_update = current_time
+                  
+      return self.__current
+
+    except:
+      rospy.logerr('Disonnected from controller_manager/list_controllers, reconnecting...')
+      self.reconnect()
+      return self.__current
+      
   def switch_controller(self, controller_name):
       controllers = self.lister_srv().controller
       selected = None
@@ -59,6 +75,7 @@ class ControlSwitcher(object):
       res = self.switcher_srv(controller_switch_msg).ok
       if res:
           rospy.loginfo('Successfully switched to controller %s' % (controller_name))
+          self.__current = controller_name
           return res
       else:
           return False

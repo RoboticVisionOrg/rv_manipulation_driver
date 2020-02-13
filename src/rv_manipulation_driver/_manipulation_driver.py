@@ -183,7 +183,9 @@ class ManipulationDriver(object):
     self.moveit_commander.stop()
 
     if self.cartesian_planning_enabled:
-      success = self.moveit_commander.goto_pose_cartesian(goal.goal_pose)
+      transformed = self.tf_listener.transformPose(self.base_frame, goal.goal_pose)
+      success = self.moveit_commander.goto_pose_cartesian(transformed.pose)
+
     else:
       success = self.moveit_commander.goto_pose(goal.goal_pose)
 
@@ -355,7 +357,7 @@ class ManipulationDriver(object):
     return SetBoolResponse(success=True)
 
   def get_cartesian_planning_enabled_cb(self, request):
-    return SimpleRequestResponse(result=True)
+    return SimpleRequestResponse(result=self.cartesian_planning_enabled)
 
   def get_link_pose_cb(self, req):
     """

@@ -18,7 +18,7 @@ class ManipulationMoveItDriver(object):
     self.scene = moveit_commander.PlanningSceneInterface()
 
     self.groups = {}
-    self.moactive_group = None
+    self.active_group = None
     self.set_group(group_name)
 
   def set_group(self, group_name):
