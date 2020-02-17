@@ -19,6 +19,7 @@ from ._transforms import tf_to_trans, pose_msg_to_trans, trans_to_pose_msg
 from std_srvs.srv import Empty, SetBool, SetBoolResponse
 from geometry_msgs.msg import PoseStamped, Pose, TwistStamped, Twist
 
+from rv_msgs.msg import JointVelocity
 from rv_msgs.msg import ManipulatorState
 from rv_msgs.msg import MoveToPoseAction, MoveToPoseResult
 from rv_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
@@ -99,6 +100,8 @@ class ManipulationDriver(object):
 
     ## Setup arm specific publishers (%see arm driver for implementation)
     self.velocity_subscriber = rospy.Subscriber('arm/cartesian/velocity', TwistStamped, self.velocity_cb)
+    self.joint_velocity_subscriber = rospy.Subscriber('arm/joint/velocity', JointVelocity, self.joint_velocity_cb)
+
     self.state_publisher = rospy.Publisher('arm/state', ManipulatorState, queue_size=1)
     
     ## Setup generic action servers
@@ -261,6 +264,15 @@ class ManipulationDriver(object):
     rospy.logwarn('Velocity controller not implemented for this arm')
     pass
 
+  def joint_velocity_cb(self, msg):
+    """
+    ROS Service callback (ARM SPECIFIC) - Moves the joints of the arm at the specified velocities
+
+    Args:
+        msg (rv_msgs/JointVelocity): The velocities for each joint of the manipulator
+    """
+    rospy.logwarn('Joint velocity controller not implemented for this arm')
+    pass
     
   def recover_cb(self, req):
     """
