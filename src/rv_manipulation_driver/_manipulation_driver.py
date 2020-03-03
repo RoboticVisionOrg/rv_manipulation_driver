@@ -10,6 +10,7 @@ import yaml
 import numpy as np
 import quaternion
 import xml.etree.ElementTree as ET
+import transforms3d as t3
 
 from ._control_switcher import ControlSwitcher
 from ._action_proxy import ActionProxy
@@ -22,6 +23,7 @@ from geometry_msgs.msg import PoseStamped, Pose, TwistStamped, Twist
 from rv_msgs.msg import JointVelocity
 from rv_msgs.msg import ManipulatorState
 from rv_msgs.msg import MoveToPoseAction, MoveToPoseResult
+from rv_msgs.msg import ServoToPoseAction, ServoToPoseResult
 from rv_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
 from rv_msgs.msg import ActuateGripperAction, ActuateGripperGoal, ActuateGripperResult
 from rv_msgs.srv import GetNamesList, GetNamesListResponse, SetNamedPose, SetNamedPoseResponse
@@ -46,6 +48,9 @@ class ManipulationDriver(object):
     self.__load_config()
 
     self.cartesian_planning_enabled = False
+
+    # Arm state property
+    self.state = ManipulatorState()
 
     # Create default moveit commander if arm specific moveit_commander not supplied
     if not moveit_commander:
@@ -114,6 +119,13 @@ class ManipulationDriver(object):
         execute_cb=self.pose_cb,
         auto_start=False)
 
+    self.pose_servo_server = actionlib.SimpleActionServer(
+      'arm/cartesian/servo_pose',
+      ServoToPoseAction,
+      execute_cb=self.servo_cb,
+      auto_start=False
+    )
+
     self.location_server = actionlib.SimpleActionServer(
         'arm/cartesian/named_pose',
         MoveToNamedPoseAction,
@@ -127,6 +139,7 @@ class ManipulationDriver(object):
         auto_start=False)
 
     self.pose_server.start()
+    self.pose_servo_server.start()
     self.location_server.start()
     self.gripper_server.start()
 
@@ -187,12 +200,39 @@ class ManipulationDriver(object):
 
     if self.cartesian_planning_enabled:
       transformed = self.tf_listener.transformPose(self.base_frame, goal.goal_pose)
-      success = self.moveit_commander.goto_pose_cartesian(transformed.pose)
+      success = self.moveit_commander.goto_pose_cartesian(transformed.pose, velocity=goal.speed if goal.speed != 0 else None)
 
     else:
-      success = self.moveit_commander.goto_pose(goal.goal_pose)
+      success = self.moveit_commander.goto_pose(goal.goal_pose, velocity=goal.speed if goal.speed != 0 else None)
 
     self.pose_server.set_succeeded(MoveToPoseResult(result=0 if success else 1))
+
+  def servo_cb(self, goal):
+    transformed = self.tf_listener.transformPose(self.base_frame, goal.stamped_pose)
+    wTep = pose_msg_to_trans(transformed.pose)
+    
+    stop = False
+    
+    while not rospy.is_shutdown() and not stop and not any(self.state.cartesian_contact) and not self.state.errors:
+        wTe = pose_msg_to_trans(self.state.ee_pose.pose)
+        v, stop = self._p_servo(wTe, wTep, goal.scaling)
+        v = v.squeeze().tolist()
+
+        msg = TwistStamped()
+        msg.twist.linear.x = v[0]
+        msg.twist.linear.y = v[1]
+        msg.twist.linear.z = v[2]
+        msg.twist.angular.x = v[3]
+        msg.twist.angular.y = v[4]
+        msg.twist.angular.z = v[5]
+        self.velocity_cb(msg)
+
+        rospy.sleep(0.01)
+
+    if self.state.errors:
+        return self.pose_servo_server.set_aborted(ServoToPoseResult(result=1), text="A collision occurred")
+    else:
+        return self.pose_servo_server.set_succeeded(ServoToPoseResult(result=0))
 
   def gripper_cb(self, goal):
     """
@@ -223,7 +263,7 @@ class ManipulationDriver(object):
     Args:
         goal (rv_msgs/MoveToNamedPoseActionGoal): the goal pose of the arm after the motion is complete
     """
-    result = self.__move_to_named(goal.pose_name)
+    result = self.__move_to_named(goal.pose_name, speed=goal.speed if goal.speed != 0 else None)
     if result:
       self.location_server.set_succeeded(MoveToNamedPoseResult(result=0))
     else:
@@ -471,7 +511,41 @@ class ManipulationDriver(object):
   def get_named_pose_configs_cb(self, request):
     return self.custom_configs
 
-  def __move_to_named(self, named):
+  
+  def _p_servo(self, wTe, wTep, scaling=None):
+    Y = np.squeeze(np.ones((1,6))) * (scaling if scaling else 0.6)
+
+    # Pose diff
+    eTep = np.matmul(np.linalg.inv(wTe), wTep)
+
+    vel = np.zeros((6,1))
+
+    # Translation velocity
+    # vel[0:3, 0] = Y[0:3] * eTep[0:3,-1]
+    vel[0,0] = Y[0] * eTep[0,3]
+    vel[1,0] = Y[1] * eTep[1,3]
+    vel[2,0] = Y[2] * eTep[2,3]
+
+    J = np.concatenate((
+        np.concatenate((wTe[0:3,0:3], np.zeros((3,3))), axis=1), 
+        np.concatenate((np.zeros((3,3)), wTe[0:3,0:3]), axis=1)
+    ))
+
+    angles = t3.euler.mat2euler(eTep[0:3, 0:3])
+    vel[3,0] = Y[3] * angles[0]
+    vel[4,0] = Y[4] * angles[1]
+    vel[5,0] = Y[5] * angles[2]
+
+    if np.sum(np.abs(vel)) < 0.004:
+        stop = True
+    else:
+        stop = False
+
+    vel = np.matmul(J, vel)
+
+    return vel, stop
+
+  def __move_to_named(self, named, speed=None):
     if self.switcher.get_current_name(
     ) != 'position_joint_trajectory_controller':
         self.switcher.switch_controller(
@@ -480,7 +554,7 @@ class ManipulationDriver(object):
     self.moveit_commander.stop()
 
     if named in self.named_poses:
-      return self.moveit_commander.goto_joints(self.named_poses[named])
+      return self.moveit_commander.goto_joints(self.named_poses[named], velocity=speed if speed else None)
     else:
       return self.moveit_commander.goto_named_pose(named)
 

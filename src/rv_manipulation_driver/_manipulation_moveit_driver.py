@@ -11,6 +11,7 @@ from moveit_commander.conversions import pose_to_list, list_to_pose
 
 import geometry_msgs.msg
 from std_msgs.msg import Empty
+from moveit_msgs.msg import MoveGroupActionResult
 
 class ManipulationMoveItDriver(object):
   def __init__(self, group_name=None):
@@ -20,6 +21,10 @@ class ManipulationMoveItDriver(object):
     self.groups = {}
     self.active_group = None
     self.set_group(group_name)
+
+    self.result = None
+
+    rospy.Subscriber('/move_group/result', MoveGroupActionResult, self._result_cb)
 
   def set_group(self, group_name):
     self.active_group = group_name
@@ -40,7 +45,7 @@ class ManipulationMoveItDriver(object):
         raise ValueError('No active Planning Group')
     return self.active_group.get_current_joint_values()
 
-  def goto_joints(self, joint_values, velocity=0.5, group_name=None, wait=True):
+  def goto_joints(self, joint_values, velocity=None, group_name=None, wait=True):
     if group_name:
         self.set_group(group_name)
     if not self.active_group:
@@ -52,12 +57,23 @@ class ManipulationMoveItDriver(object):
     for i, v in enumerate(joint_values):
         joint_goal[i] = v
 
-    self.active_group.set_max_velocity_scaling_factor(velocity)
-    success = self.active_group.go(joint_goal, wait)
-    self.active_group.stop()
-    return success
+    self.active_group.set_max_velocity_scaling_factor(velocity if velocity else 0.5)
+    
+    self.result = None
+    self.active_group.go(joint_goal, wait=False)
 
-  def goto_pose(self, pose, velocity=0.5, group_name=None, wait=True):
+    if not wait:
+      return True
+
+    while not self.result:
+      rospy.sleep(0.01)
+
+    self.active_group.stop()
+    self.active_group.clear_pose_targets()
+    return self.result.result.error_code.val == 1
+
+
+  def goto_pose(self, pose, velocity=None, group_name=None, wait=True):
     if group_name:
         self.set_group(group_name)
     if not self.active_group:
@@ -66,14 +82,23 @@ class ManipulationMoveItDriver(object):
     if type(pose) is list:
         pose = list_to_pose(pose)
     
-    self.active_group.set_max_velocity_scaling_factor(velocity)
+    self.active_group.set_max_velocity_scaling_factor(velocity if velocity else 0.5)
     self.active_group.set_pose_target(pose)
-    success = self.active_group.go(wait=wait)
+
+    self.result = None
+    self.active_group.go(wait=False)
+
+    if not wait:
+      return True
+
+    while not self.result:
+      rospy.sleep(0.01)
+
     self.active_group.stop()
     self.active_group.clear_pose_targets()
-    return success
+    return self.result.result.error_code.val == 1
 
-  def goto_pose_cartesian(self, pose, velocity=0.5, group_name=None, wait=True):
+  def goto_pose_cartesian(self, pose, velocity=None, group_name=None, wait=True):
     if group_name:
         self.set_group(group_name)
     if not self.active_group:
@@ -82,32 +107,52 @@ class ManipulationMoveItDriver(object):
     if type(pose) is list:
         pose = list_to_pose(pose)
 
-    self.active_group.set_max_velocity_scaling_factor(velocity)
     (plan, fraction) = self.active_group.compute_cartesian_path(
                                         [pose],   # waypoints to follow
                                         0.005,        # eef_step
                                         0.0)         # jump_threshold
+    plan = self.active_group.retime_trajectory(self.robot.get_current_state(), plan, velocity if velocity else 0.5)
+
     if fraction != 1.0:
         raise ValueError('Unable to plan entire path!')
         return False
 
-    success = self.active_group.execute(plan, wait=wait)
+    self.result = None
+    self.active_group.execute(plan, wait=False)
+    
+    if not wait:
+      return True
+
+    while not self.result:
+      rospy.sleep(0.01)
+
     self.active_group.stop()
     self.active_group.clear_pose_targets()
-    return success
+    return self.result.result.error_code.val == 1
 
 
-  def goto_named_pose(self, pose_name, velocity=0.5, group_name=None, wait=True):
+  def goto_named_pose(self, pose_name, velocity=None, group_name=None, wait=True):
     if group_name:
         self.set_group(group_name)
     if not self.active_group:
         raise ValueError('No active Planning Group')
 
-    self.active_group.set_max_velocity_scaling_factor(velocity)
+    self.active_group.set_max_velocity_scaling_factor(velocity if velocity else 0.5)
     self.active_group.set_named_target(pose_name)
-    success = self.active_group.go(wait=wait)
+    
+    self.result = None
+    self.active_group.go(wait=False)
+
+    if not wait:
+      return True
+
+    while not self.result:
+      rospy.sleep(0.01)
+
     self.active_group.stop()
-    return success
+    self.active_group.clear_pose_targets()
+    return self.result.result.error_code.val == 1
+
 
   def get_planner_ee_link(self, group_name=None):
     if group_name:
@@ -130,3 +175,7 @@ class ManipulationMoveItDriver(object):
 
   def recover(self):
     pass
+
+  def _result_cb(self, msg):
+    self.result = msg
+
