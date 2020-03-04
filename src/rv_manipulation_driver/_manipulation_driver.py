@@ -213,7 +213,10 @@ class ManipulationDriver(object):
     
     stop = False
     
-    while not rospy.is_shutdown() and not stop and not any(self.state.cartesian_contact) and not self.state.errors:
+    while not stop and not any(self.state.cartesian_contact) and not self.state.errors:
+        if self.pose_servo_server.is_preempt_requested():
+            return self.pose_servo_server.set_preempted(ServoToPoseResult(result=1))
+
         wTe = pose_msg_to_trans(self.state.ee_pose.pose)
         v, stop = self._p_servo(wTe, wTep, goal.scaling)
         v = v.squeeze().tolist()
