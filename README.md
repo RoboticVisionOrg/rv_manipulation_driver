@@ -61,39 +61,84 @@ For this purpose, RMD provides access to two core interfaces, `manipulation_driv
 For an example of how these modules might be extended, see the [rv_panda_driver](https://github.com/roboticvisionorg/rv_panda_driver) package. The extension provided in this package provides additional functionality, such as clearing errors on the e-stop being released.
 
 
+### Subscribed Topics
+
+- **/arm/cartesian/velocity** ([geometry_msgs/TwistStamped](https://docs.ros.org/api/geometry_msgs/html/msg/Twist.html))
+Moves the end-effector in cartesian space w.r.t. the target frame_id (base frame if no frame_id is set).
+
+- **/arm/joint/velocity** ([rv_msgs/JointVelocity](https://github.com/roboticvisionorg/rv_msgs/blob/master/msg/JointVelocity.html))
+Moves the joints of the manipulator at the requested velocity.
+
+### Published Topics
+
+- **/arm/state**  ([rv_msgs/ManipulatorState](https://github.com/roboticvisionorg/rv_msgs/blob/master/msg/ManipulatorState.msg))
+Provides information on the current state of the manipulator including the pose of the end-effector w.r.t. to the base link, whether the manipulator is experiencing a cartesian contact and collision as a bit-wised error state flag.
+
+### Services
+
+- **/arm/home** ([std_srvs/Empty](http://docs.ros.org/jade/api/std_srvs/html/srv/Empty.html))
+Moves the robot back to its initial ready pose.
+
+- **/arm/recover** ([std_srvs/Empty](http://docs.ros.org/jade/api/std_srvs/html/srv/Empty.html))
+Recovers from collision or limit violation error states that will put the robot into a non-operable state.
+
+- **/arm/stop** ([std_srvs/Empty](http://docs.ros.org/jade/api/std_srvs/html/srv/Empty.html))
+Stops the current motion of the current.
+
+- **/arm/set_ee_offset** ([rv_msgs/SetPose](https://github.com/roboticvisionorg/rv_msgs/blob/master/srv/SetPose.srv))
+Sets the offset between the end-effector and the wrist of the robot arm.
+
+- **/arm/get_named_poses** ([rv_msgs/GetNamesList](https://github.com/roboticvisionorg/rv_msgs/blob/master/srv/GetNamesList.srv))
+Gets a list of currently stored named poses (includes both moveit and driver stored named poses).
+
+- **/arm/set_named_pose** ([rv_msgs/SetNamedPose](https://github.com/roboticvisionorg/rv_msgs/blob/master/srv/SetNamedPose.srv))
+Saves the current joint configuration of the panda with the provided pose name.
+
+- **/arm/set_cartesian_impedance** ([rv_msgs/SetCartesianImpedance](https://github.com/roboticvisionorg/rv_msgs/blob/master/srv/SetCartesianImpedance.srv)
+Adjusts the impedenace of the end-effector position in cartesian space.
+
+- **/arm/get_link_position** ([rv_msgs/GetRelativePose](https://github.com/roboticvisionorg/rv_msgs/blob/master/srv/GetRelativePose.srv))
+A convenience wrapper around the ROS transform lookup service that provides the relative pose of a target frame w.r.t. a reference frame.
+
+- **/arm/set_cartesian_planning_enabled** ([std_srvs/SetBool](http://docs.ros.org/jade/api/std_srvs/html/srv/SetBool.html))
+Forces the path-planner to only consider linear paths when moving moving between poses with /arm/cartesian/pose
+
+- **/arm/get_cartesian_planning_enabled** ([rv_msgs/SimpleRequest](https://github.com/roboticvisionorg/rv_msgs/blob/master/srv/SimpleRequest.srv))
+Checks whether the path-planner will only consider linear paths when moving moving between poses with /arm/cartesian/pose
+
+- **/arm/add_named_pose_config** ([rv_msgs/SetNamedPoseConfig](https://github.com/roboticvisionorg/rv_msgs/blob/master/srv/SetNamedPoseConfig.srv))
+Instructs the driver to load named poses stored in the indicated config file.
+
+- **/arm/get_named_pose_configs** ([rv_msgs/GetNamedPoseConfigs](https://github.com/roboticvisionorg/rv_msgs/blob/master/srv/GetNamedPoseConfigs.srv))
+Gets the list of config files to check for named poses.
+
+- **/arm/remove_named_pose_config** ([rv_msgs/SetNamedPoseConfig](https://github.com/roboticvisionorg/rv_msgs/blob/master/srv/SetNamedPoseConfig.srv))
+Instructs the driver to remove named poses stored in the indicated config file.
+
+
 ### Action API
-Out of the box RMD provides access to a simple Pose Control and Named Pose Control API.
 
-#### Pose Control
+#### Cartesian Pose Control
 
-- **cartesian/pose/goal** ([rv_msgs/MoveToPoseGoal](https://github.com/roboticvisionorg/rv_msgs/blob/master/action/MoveToPose.action))
-Moves the end-effector to the requested goal pose w.r.t. the base frame.
+- **/arm/cartesian/pose** ([rv_msgs/MoveToPose.action](https://github.com/roboticvisionorg/rv_msgs/blob/master/action/MoveToPose.action))
+Moves the end-effector to the requested goal pose w.r.t. the indicated frame id.
 
-- **cartesian/pose/cancel** ([actionlib_msgs/GoalID](http://docs.ros.org/api/actionlib_msgs/html/msg/GoalID.html))
-Cancels the currently executing goal.
+#### Cartesian Servoing Control
 
-- **cartesian/pose/feedback** ([rv_msgs/MoveToPoseGoal](https://github.com/roboticvisionorg/rv_msgs/blob/master/action/MoveToPose.action))
-Feedback from the currently executing goal.
-
-- **cartesian/pose/status** ([actionlib_msgs/GoalStatusArray](http://docs.ros.org/api/actionlib_msgs/html/msg/GoalStatusArray.html))
-Status information on goals sent to the driver.
-
-- **cartesian/pose/result** ([rv_msgs/MoveToPoseGoal](https://github.com/roboticvisionorg/rv_msgs/blob/master/action/MoveToPose.action))
-The result of the pose goal request.
+- **/arm/cartesian/servo_pose** ([rv_msgs/ServoToPose.action](https://github.com/roboticvisionorg/rv_msgs/blob/master/action/ServoToPose.action))
+Servos the end-effector to the requested goal pose.
 
 #### Named Pose Control
 
-- **cartesian/named_pose/goal** ([rv_msgs/MoveToNamedPoseGoal](https://github.com/roboticvisionorg/rv_msgs/blob/master/action/MoveToNamedPose.action))
+- **/arm/cartesian/named_pose** ([rv_msgs/MoveToNamedPose.action](https://github.com/roboticvisionorg/rv_msgs/blob/master/action/MoveToNamedPose.action))
 Moves the end-effector to a pre-defined joint configuration.
 
-- **cartesian/named_pose/cancel** ([actionlib_msgs/GoalID](http://docs.ros.org/api/actionlib_msgs/html/msg/GoalID.html))
-Cancels the currently executing goal.
+#### Joint Pose Control
 
-- **cartesian/named_pose/feedback** ([rv_msgs/MoveToNamedPoseFeedback]((https://github.com/roboticvisionorg/rv_msgs/blob/master/action/MoveToNamedPose.action)))
-Feedback from the currently executing goal.
+- **/arm/cartesian/servo_pose** ([rv_msgs/MoveToJointPoseAction](https://github.com/roboticvisionorg/rv_msgs/blob/master/action/MoveToJointPose.action))
+Moves the joints of the robot to the indicated positions (radians).
 
-- **cartesian/named_pose/status** ([actionlib_msgs/GoalStatusArray](http://docs.ros.org/api/actionlib_msgs/html/msg/GoalStatusArray.html))
-Status information on goals sent to the driver.
+#### Gripper
 
-- **cartesian/named_pose/result** ([rv_msgs/MoveToNamedPoseResult]((https://github.com/roboticvisionorg/rv_msgs/blob/master/action/MoveToNamedPose.action)))
-The result of the goal request.
+- **/arm/gripper** ([rv_msgs/ActuateGripper.action](https://github.com/roboticvisionorg/rv_msgs/blob/master/action/ActuateGripper.action))
+Actuates the gripper based on the requested mode. The static mode will move the gripper to the requested width. The grasp mode will attempt to grasp an object of width plus/minus a tolernace factor.
