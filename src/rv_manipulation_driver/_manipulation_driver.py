@@ -25,6 +25,7 @@ from rv_msgs.msg import ManipulatorState
 from rv_msgs.msg import MoveToPoseAction, MoveToPoseResult
 from rv_msgs.msg import ServoToPoseAction, ServoToPoseResult
 from rv_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
+from rv_msgs.msg import MoveToJointPoseAction, MoveToJointPoseResult
 from rv_msgs.msg import ActuateGripperAction, ActuateGripperGoal, ActuateGripperResult
 from rv_msgs.srv import GetNamesList, GetNamesListResponse, SetNamedPose, SetNamedPoseResponse
 from rv_msgs.srv import GetRelativePose, GetRelativePoseResponse
@@ -132,6 +133,13 @@ class ManipulationDriver(object):
         execute_cb=self.location_cb,
         auto_start=False)
 
+    self.joint_pose_server = actionlib.SimpleActionServer(
+      'arm/joint/pose',
+      MoveToJointPoseAction,
+      execute_cb=self.joint_pose_cb,
+      auto_start=False
+    )
+
     self.gripper_server = actionlib.SimpleActionServer(
         'arm/gripper',
         ActuateGripperAction,
@@ -141,6 +149,7 @@ class ManipulationDriver(object):
     self.pose_server.start()
     self.pose_servo_server.start()
     self.location_server.start()
+    self.joint_pose_server.start()
     self.gripper_server.start()
 
     # rospy.Service('force_torque_limits', SetForceTorqueImpedance, self.set_force_torque_cb)
@@ -272,6 +281,27 @@ class ManipulationDriver(object):
     else:
       self.location_server.set_aborted(MoveToNamedPoseResult(result=1))
 
+  def joint_pose_cb(self, goal):
+    """
+    ROS Action Server callback - Moves the arm joints to the pose indicated by goal
+
+    Args:
+        goal (rv_msgs/MoveToJointPoseActionGoal): the goal pose of the arm after the motion is complete
+    """
+    if self.switcher.get_current_name(
+    ) != 'position_joint_trajectory_controller':
+        self.switcher.switch_controller(
+            'position_joint_trajectory_controller')
+
+    self.moveit_commander.stop()
+
+    result = self.moveit_commander.goto_joints(goal.joints, velocity=goal.speed if goal.speed else None)
+
+    if result:
+      self.joint_pose_server.set_succeeded(MoveToJointPoseResult(result=0))
+    else:
+      self.joint_pose_server.set_aborted(MoveToJointPoseResult(result=1))
+    
   def stop_cb(self, req):
     """
     ROS Service callback - Stops any current arm motion
