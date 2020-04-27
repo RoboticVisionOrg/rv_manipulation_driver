@@ -27,6 +27,7 @@ from rv_msgs.msg import ServoToPoseAction, ServoToPoseResult
 from rv_msgs.msg import MoveToNamedPoseAction, MoveToNamedPoseResult
 from rv_msgs.msg import MoveToJointPoseAction, MoveToJointPoseResult
 from rv_msgs.msg import ActuateGripperAction, ActuateGripperGoal, ActuateGripperResult
+from rv_msgs.srv import GetManipulability, GetManipulabilityResponse
 from rv_msgs.srv import GetNamesList, GetNamesListResponse, SetNamedPose, SetNamedPoseResponse
 from rv_msgs.srv import GetRelativePose, GetRelativePoseResponse
 from rv_msgs.srv import SetCartesianImpedance, SetCartesianImpedanceResponse
@@ -91,7 +92,10 @@ class ManipulationDriver(object):
     rospy.Service('arm/stop', Empty, self.stop_cb)
 
     rospy.Service('arm/set_cartesian_impedance', SetCartesianImpedance, self.set_cartesian_impedance_cb)
-    
+
+    rospy.Service('arm/cartesian/manipulability', GetManipulability, self.get_cartesian_manipulability_cb)
+    rospy.Service('arm/joint/manipulability', GetManipulability, self.get_joint_manipulability_cb)
+
     # Setup dynamic republisher mappings
     self.action_proxies = []
     self.publishers = []
@@ -370,6 +374,30 @@ class ManipulationDriver(object):
     """
     rospy.logwarn('Setting cartesian impedance not implemented for this arm')
     return True
+
+  def get_cartesian_manipulability_cb(self, req):
+    """
+    ROS Service callback (ARM SPECIFIC) - Gets a manipulability score for the provided cartesian pose of the EE
+
+    Args:
+        req (rv_msgs/GetManipulability): Stamped pose to score
+    Returns:
+        score for how manipulable the arm would be with the given EE pose
+    """
+    rospy.logwarn('Calculating manipulability scores is not for this arm')
+    return 0
+
+  def get_joint_manipulability_cb(self, req):
+    """
+    ROS Service callback (ARM SPECIFIC) - Gets a manipulability score for the provided set of joint positions
+
+    Args:
+        req (rv_msgs/GetManipulability): Joint positions to score
+    Returns:
+        score for how manipulable the arm would be with the given joint positions
+    """
+    rospy.logwarn('Calculating manipulability scores is not for this arm')
+    return 0
 
   def get_named_poses_cb(self, req):
     """

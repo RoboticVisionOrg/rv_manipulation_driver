@@ -162,7 +162,18 @@ class ManipulationMoveItDriver(object):
 
     return self.active_group.get_end_effector_link()
 
-      
+  def get_pose_ik(self, pose, group_name=None):
+    if group_name:
+        self.set_group(group_name)
+    if not self.active_group:
+        raise ValueError('No active Planning Group')
+
+    self.active_group.set_joint_value_target(pose)
+    joints = self.active_group.get_joint_value_target()
+    self.active_group.clear_pose_targets()
+
+    return joints
+
   def set_gripper(self, width, speed=0.1, wait=True):
     raise NotImplementedError()
 
