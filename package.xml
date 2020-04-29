@@ -13,7 +13,7 @@
   <exec_depend>moveit_commander</exec_depend>
   <exec_depend>python-numpy-quaternion</exec_depend>
   <exec_depend>python-transforms3d</exec_depend>
-  <depend>rv_msgs</depend>
+  <exec_depend>rv_msgs</exec_depend>
   
   <export>
   </export>
