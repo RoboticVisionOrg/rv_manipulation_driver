@@ -14,7 +14,7 @@ import transforms3d as t3
 
 from ._control_switcher import ControlSwitcher
 from ._action_proxy import ActionProxy
-from ._manipulation_moveit_driver import ManipulationMoveItDriver
+# from ._manipulation_moveit_driver import ManipulationMoveItDriver
 from ._transforms import tf_to_trans, pose_msg_to_trans, trans_to_pose_msg
 
 from std_srvs.srv import Empty, SetBool, SetBoolResponse
