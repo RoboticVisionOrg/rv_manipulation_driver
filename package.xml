@@ -11,8 +11,8 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <exec_depend>moveit_commander</exec_depend>
-  <exec_depend>python-numpy-quaternion</exec_depend>
-  <exec_depend>python-transforms3d</exec_depend>
+  <exec_depend>python-numpy-quaternion-pip</exec_depend>
+  <exec_depend>python-transforms3d-pip</exec_depend>
   <exec_depend>rv_msgs</exec_depend>
   
   <export>
